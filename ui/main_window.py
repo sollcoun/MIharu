@@ -297,13 +297,20 @@ class ReportEnrichThread(QThread):
 class MainWindow(QMainWindow):
     """Главное окно — только оболочка со стилем, дашборд открывается отдельно."""
 
+    # Telegram callbacks arrive from a worker thread — marshal to UI thread
+    telegram_status = Signal(str)
+    telegram_done = Signal(bool, str)
+
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Miharu // 見張る")
+        self.setWindowTitle("Miharu")
         self.resize(1100, 680)
         self.setStyleSheet(STYLE)
         self._apply_app_icon()
+
+        self.telegram_status.connect(self._on_telegram_status)
+        self.telegram_done.connect(self._on_telegram_done)
 
         self.worker: ScanWorker | None = None
         self.latest_report_path: Path | None = None
@@ -486,7 +493,7 @@ class MainWindow(QMainWindow):
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setPlainText(
-            "MIHARU  ·  見張る\n"
+            "MIHARU\n"
             "See what changed. Understand what matters.\n"
             "────────────────────────────────────\n\n"
             "  QUICK   быстрый скан (security + diff)\n"
@@ -1204,6 +1211,18 @@ class MainWindow(QMainWindow):
                 self.side_tg.setText("  Telegram: OFF")
                 self.side_tg.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px; padding: 4px 16px;")
 
+    def _on_telegram_status(self, msg: str) -> None:
+        self.append_log(f"[ TELEGRAM ] {msg}\n")
+
+    def _on_telegram_done(self, ok: bool, msg: str) -> None:
+        self.telegram_btn.setEnabled(True)
+        self._refresh_telegram_btn()
+        self.append_log(f"[ TELEGRAM ] {msg}\n")
+        if ok:
+            QMessageBox.information(self, "Telegram", "Чат успешно привязан.")
+        else:
+            QMessageBox.warning(self, "Telegram", msg)
+
     def link_telegram(self) -> None:
         if not telegram_token():
             QMessageBox.warning(
@@ -1227,34 +1246,34 @@ class MainWindow(QMainWindow):
 
         self.telegram_btn.setEnabled(False)
         self.append_log("\n[ TELEGRAM ] Привязка чата…\n")
-        try:
-            payload = get_installation_id()[:16]
-            url = deep_link(start_payload=payload)
-            self.append_log(f"[ TELEGRAM ] Откройте: {url}\n")
-            self.append_log("[ TELEGRAM ] В боте нажмите Start.\n")
-            os.startfile(url)
-        except Exception as exc:
-            self.append_log(f"[ TELEGRAM ] deep link: {exc}\n")
-            payload = None
 
-        def on_status(msg: str) -> None:
-            self.append_log(f"[ TELEGRAM ] {msg}\n")
+        # Network (getMe / deep_link) must not run on the UI thread —
+        # otherwise the window shows «Не отвечает».
+        import threading
 
-        def on_done(ok: bool, msg: str) -> None:
-            self.telegram_btn.setEnabled(True)
-            self._refresh_telegram_btn()
-            self.append_log(f"[ TELEGRAM ] {msg}\n")
-            if ok:
-                QMessageBox.information(self, "Telegram", "Чат успешно привязан.")
-            else:
-                QMessageBox.warning(self, "Telegram", msg)
+        def worker() -> None:
+            payload: str | None = None
+            try:
+                payload = get_installation_id()[:16]
+                url = deep_link(start_payload=payload)
+                self.telegram_status.emit(f"Откройте: {url}")
+                self.telegram_status.emit("В боте нажмите Start.")
+                try:
+                    os.startfile(url)
+                except OSError as exc:
+                    self.telegram_status.emit(f"Не удалось открыть браузер: {exc}")
+            except Exception as exc:
+                self.telegram_status.emit(f"deep link: {exc}")
+                payload = None
 
-        link_chat_id_async(
-            timeout_sec=120,
-            start_payload=payload,
-            on_status=on_status,
-            on_done=on_done,
-        )
+            link_chat_id_async(
+                timeout_sec=120,
+                start_payload=payload,
+                on_status=lambda m: self.telegram_status.emit(m),
+                on_done=lambda ok, m: self.telegram_done.emit(ok, m),
+            )
+
+        threading.Thread(target=worker, name="telegram-deeplink", daemon=True).start()
 
 
     def _refresh_monitor_btn(self) -> None:
