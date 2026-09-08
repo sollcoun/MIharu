@@ -530,18 +530,74 @@ def build_dashboard_html(report: dict) -> str:
     counts = risk_summary.get("counts") or {}
     scan_mode = str((report.get("meta") or {}).get("mode") or "Full")
 
-    def items_html(items: list, extractor, limit: int = 4) -> str:
-        if not items:
-            return '<div class="change-empty">Нет изменений</div>'
-        lines = []
-        for it in items[:limit]:
-            text = extractor(it) if not isinstance(it, str) else it
-            lines.append(f'<div class="change-item"><span class="dot warn">●</span> {_esc(text)}</div>')
-        if len(items) > limit:
-            lines.append(f'<div class="change-more">… и ещё {len(items) - limit}</div>')
-        return "".join(lines)
+    # Known Windows / vendor processes → short RU description
+    PROCESS_DESC: dict[str, str] = {
+        "searchhost.exe": "Поиск Windows (Search UI)",
+        "searchindexer.exe": "Индексация поиска Windows",
+        "searchprotocolhost.exe": "Хост протокола поиска Windows",
+        "msedgewebview2.exe": "Движок WebView2 (Edge) для встроенных веб-окон",
+        "msedge.exe": "Браузер Microsoft Edge",
+        "chssmartscreen.exe": "Windows SmartScreen (проверка загрузок/приложений)",
+        "smartscreen.exe": "Windows SmartScreen",
+        "powershell.exe": "Оболочка PowerShell",
+        "pwsh.exe": "PowerShell 7+",
+        "cmd.exe": "Командная строка Windows",
+        "conhost.exe": "Консольный хост Windows",
+        "explorer.exe": "Проводник Windows",
+        "svchost.exe": "Хост системных служб Windows",
+        "runtimebroker.exe": "Брокер прав UWP-приложений",
+        "taskhostw.exe": "Хост фоновых задач Windows",
+        "sihost.exe": "Shell Infrastructure Host",
+        "dllhost.exe": "COM Surrogate (хост DLL)",
+        "wmiprvse.exe": "WMI Provider Host",
+        "csrss.exe": "Client Server Runtime (критичный системный)",
+        "lsass.exe": "Local Security Authority (логины, политики)",
+        "services.exe": "Диспетчер служб Windows",
+        "winlogon.exe": "Вход в систему Windows",
+        "wininit.exe": "Инициализация Windows",
+        "systemsettings.exe": "Параметры Windows",
+        "applicationframehost.exe": "Хост UWP-окон",
+        "startmenuexperiencehost.exe": "Меню «Пуск»",
+        "shellexperiencehost.exe": "Оболочка уведомлений/панели",
+        "textinputhost.exe": "Ввод текста / сенсорная клавиатура",
+        "ctfmon.exe": "Языковая панель / ввод",
+        "securityhealthservice.exe": "Служба безопасности Windows",
+        "securityhealthsystray.exe": "Значок безопасности в трее",
+        "msmpeng.exe": "Антивирус Microsoft Defender",
+        "nissrv.exe": "Служба сети Defender",
+        "onedrive.exe": "Microsoft OneDrive",
+        "teams.exe": "Microsoft Teams",
+        "outlook.exe": "Microsoft Outlook",
+        "excel.exe": "Microsoft Excel",
+        "winword.exe": "Microsoft Word",
+        "powerpnt.exe": "Microsoft PowerPoint",
+        "code.exe": "Visual Studio Code",
+        "devenv.exe": "Visual Studio",
+        "chrome.exe": "Google Chrome",
+        "firefox.exe": "Mozilla Firefox",
+        "discord.exe": "Discord",
+        "spotify.exe": "Spotify",
+        "steam.exe": "Steam",
+        "nvidia share.exe": "NVIDIA Share / GeForce Experience",
+        "nvidia web helper.exe": "Вспомогательный процесс NVIDIA",
+        "nvcontainer.exe": "Контейнер служб NVIDIA",
+        "audiodg.exe": "Изоляция аудио Windows",
+        "fontdrvhost.exe": "Хост шрифтов",
+        "spoolsv.exe": "Диспетчер печати",
+        "taskmgr.exe": "Диспетчер задач",
+        "regedit.exe": "Редактор реестра",
+        "mmc.exe": "Консоль управления MMC",
+        "wscript.exe": "Windows Script Host (VBS/JS)",
+        "cscript.exe": "Windows Script Host (консоль)",
+        "msiexec.exe": "Установщик Windows Installer",
+        "rundll32.exe": "Запуск функций из DLL",
+        "python.exe": "Интерпретатор Python",
+        "pythonw.exe": "Python без консоли",
+        "node.exe": "Node.js",
+        "git.exe": "Git",
+    }
 
-    def path_name(it):
+    def _proc_basename(it) -> str:
         if isinstance(it, dict):
             p = str(
                 it.get("Path") or it.get("path")
@@ -549,8 +605,65 @@ def build_dashboard_html(report: dict) -> str:
                 or it.get("TaskName") or it.get("task_name")
                 or "—"
             )
-            return p.split("\\")[-1]
+            return p.split("\\")[-1] or p
+        return str(it).split("\\")[-1] or str(it)
+
+    def _proc_full_path(it) -> str:
+        if isinstance(it, dict):
+            return str(it.get("Path") or it.get("path") or it.get("Name") or it.get("name") or "")
         return str(it)
+
+    def _proc_desc(name: str) -> str:
+        key = (name or "").strip().lower()
+        if key in PROCESS_DESC:
+            return PROCESS_DESC[key]
+        # soft match without .exe
+        if key.endswith(".exe") and key in PROCESS_DESC:
+            return PROCESS_DESC[key]
+        base = key[:-4] if key.endswith(".exe") else key
+        for k, v in PROCESS_DESC.items():
+            if k.startswith(base + ".") or k == base:
+                return v
+        return ""
+
+    def items_html(items: list, extractor, limit: int = 4, *, with_desc: bool = False) -> str:
+        if not items:
+            return '<div class="change-empty">Нет изменений</div>'
+        lines = []
+        show = items if with_desc else items[:limit]
+        for it in show:
+            if with_desc:
+                name = _proc_basename(it)
+                path = _proc_full_path(it)
+                desc = _proc_desc(name)
+                title = _esc(path or name)
+                desc_html = (
+                    f'<span class="proc-desc">{_esc(desc)}</span>'
+                    if desc
+                    else '<span class="proc-desc dim">неизвестный / сторонний процесс</span>'
+                )
+                lines.append(
+                    f'<div class="change-item proc-item" title="{title}">'
+                    f'<div class="proc-line">'
+                    f'<span class="dot warn">●</span> '
+                    f'<span class="proc-name">{_esc(name)}</span>'
+                    f'</div>'
+                    f'{desc_html}'
+                    f"</div>"
+                )
+            else:
+                text = extractor(it) if not isinstance(it, str) else it
+                lines.append(f'<div class="change-item"><span class="dot warn">●</span> {_esc(text)}</div>')
+        if not with_desc and len(items) > limit:
+            lines.append(f'<div class="change-more">… и ещё {len(items) - limit}</div>')
+        elif with_desc and len(items) > 0:
+            lines.append(
+                f'<div class="change-more">всего процессов: {len(items)}</div>'
+            )
+        return "".join(lines)
+
+    def path_name(it):
+        return _proc_basename(it)
 
     WHY_RU = {
         "unsigned": "нет подписи",
@@ -591,7 +704,7 @@ def build_dashboard_html(report: dict) -> str:
             out.append(WHY_RU.get(key, key.replace("_", " ")))
         return " · ".join(out) if out else "—"
 
-    def processes_html(trees: list, limit: int = 12) -> str:
+    def processes_html(trees: list, limit: int = 50) -> str:
         if not trees:
             return '<div class="change-empty">Нет интересных process tree (unsigned / elevated score)</div>'
         blocks = []
@@ -600,7 +713,10 @@ def build_dashboard_html(report: dict) -> str:
                 continue
             risk = str(t.get("risk") or "LOW").upper()
             cls = "bad" if risk == "HIGH" else ("warn" if risk == "MEDIUM" else "ok")
-            name = _esc(str(t.get("name") or "—")[:48])
+            raw_name = str(t.get("name") or "—")
+            name = _esc(raw_name[:48])
+            desc = _proc_desc(raw_name)
+            desc_html = f'<div class="proc-card-desc">{_esc(desc)}</div>' if desc else ""
             score = int(t.get("score") or 0)
             path = _esc(str(t.get("path") or ""))
             tree = t.get("tree") or []
@@ -627,9 +743,12 @@ def build_dashboard_html(report: dict) -> str:
                 f'<span class="finding-score">{score}</span>'
                 f'<span class="finding-name" title="{path}">{name}</span>'
                 f'</div>'
+                f'{desc_html}'
                 f'{tree_html}'
                 f'</div>'
             )
+        if len(trees) > limit:
+            blocks.append(f'<div class="change-more">… и ещё {len(trees) - limit} process tree</div>')
         return "".join(blocks)
 
     def findings_html(findings: list, limit: int = 8) -> str:
@@ -1259,6 +1378,37 @@ a.card-more:hover {{ color: var(--text); }}
   display: flex;
   gap: 6px;
   align-items: flex-start;
+  flex-wrap: wrap;
+}}
+.change-item.proc-item {{
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  margin-bottom: 8px;
+}}
+.change-item.proc-item:last-of-type {{
+  border-bottom: none;
+}}
+.proc-line {{
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}}
+.proc-name {{
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12px;
+}}
+.proc-desc {{
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+  padding-left: 14px;
+}}
+.proc-desc.dim {{
+  color: var(--dim);
+  font-style: italic;
 }}
 
 .findings-meta {{
@@ -1353,8 +1503,14 @@ a.card-more:hover {{ color: var(--text); }}
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   font-size: 12px;
+}}
+.proc-card-desc {{
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  line-height: 1.35;
 }}
 .proc-tree {{
   margin: 8px 0 12px;
@@ -1677,35 +1833,35 @@ a.card-more:hover {{ color: var(--text); }}
               <span class="lbl">НОВЫЕ ПРОЦЕССЫ</span>
               <span class="cnt">{len(new_unsigned)}</span>
             </div>
-            {items_html(new_unsigned, path_name)}
+            {items_html(new_unsigned, path_name, with_desc=True)}
           </div>
           <div class="change-col">
             <div class="change-head">
               <span class="lbl">НОВЫЕ АВТОЗАГРУЗКИ</span>
               <span class="cnt">{len(new_autorun)}</span>
             </div>
-            {items_html(new_autorun, path_name)}
+            {items_html(new_autorun, path_name, limit=20)}
           </div>
           <div class="change-col">
             <div class="change-head">
               <span class="lbl">НОВЫЕ СЛУЖБЫ</span>
               <span class="cnt">{len(new_services)}</span>
             </div>
-            {items_html(new_services, path_name)}
+            {items_html(new_services, path_name, limit=20)}
           </div>
           <div class="change-col">
             <div class="change-head">
               <span class="lbl">НОВЫЕ ЗАДАЧИ</span>
               <span class="cnt">{len(new_tasks)}</span>
             </div>
-            {items_html(new_tasks, path_name)}
+            {items_html(new_tasks, path_name, limit=20)}
           </div>
           <div class="change-col">
             <div class="change-head">
               <span class="lbl">НОВЫЕ ФАЙЛЫ</span>
               <span class="cnt">{len(new_sus)}</span>
             </div>
-            {items_html(new_sus, path_name)}
+            {items_html(new_sus, path_name, limit=20)}
           </div>
           <div class="change-col">
             <div class="change-head">
@@ -1725,7 +1881,7 @@ a.card-more:hover {{ color: var(--text); }}
           <div class="findings-meta">unsigned / elevated · parent chain</div>
         </div>
         <div class="proc-grid">
-          {processes_html((report.get("process_trees") or []), limit=12)}
+          {processes_html((report.get("process_trees") or []), limit=50)}
         </div>
       </div>
 
