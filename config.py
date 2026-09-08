@@ -32,21 +32,33 @@ def resource_root() -> Path:
 
 
 def product_defaults_path() -> Path | None:
-    """Bundled defaults next to install / in _internal / secrets/."""
-    candidates = [
-        resource_root() / PRODUCT_DEFAULTS_NAME,
-        resource_root() / "secrets" / PRODUCT_DEFAULTS_NAME,
-        SCRIPT_DIR / PRODUCT_DEFAULTS_NAME,
-        SCRIPT_DIR / "secrets" / PRODUCT_DEFAULTS_NAME,
-    ]
-    # next to exe (onedir layout)
+    """Bundled defaults next to install / in _internal / secrets/.
+
+    Preference order:
+      1. product_defaults.json (office / explicit)
+      2. product_defaults.example.json (dev fallback so Telegram works from source)
+    """
+    names = (PRODUCT_DEFAULTS_NAME, "product_defaults.example.json")
+    bases: list[Path] = []
     import sys
     if getattr(sys, "frozen", False):
-        candidates.insert(0, Path(sys.executable).resolve().parent / PRODUCT_DEFAULTS_NAME)
-        candidates.insert(1, Path(sys.executable).resolve().parent / "secrets" / PRODUCT_DEFAULTS_NAME)
-    for p in candidates:
-        if p.is_file():
-            return p
+        # onedir: next to exe, then _MEIPASS
+        bases.append(Path(sys.executable).resolve().parent)
+        bases.append(Path(sys.executable).resolve().parent / "secrets")
+    bases.extend(
+        [
+            resource_root(),
+            resource_root() / "secrets",
+            SCRIPT_DIR,
+            SCRIPT_DIR / "secrets",
+        ]
+    )
+    # Prefer real product_defaults.json over example across all bases
+    for name in names:
+        for base in bases:
+            p = base / name
+            if p.is_file():
+                return p
     return None
 
 
