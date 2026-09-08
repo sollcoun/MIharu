@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+env/
+build/.venv/
+build/.venv-*/
+build/.venv.trash-*/
+
+# Build / release binaries (do not publish)
+dist/
+build/pyinstaller/
+release/
+*.exe
+*.dll
+*.spec.bak
+
+# Secrets — never commit real tokens/keys
+.env
+.env.*
+!.env.example
+secrets/product_defaults.json
+settings.json
+**/Config/settings.json
+*.pem
+
+# Keep placeholders under secrets/
+!secrets/
+!secrets/.gitkeep
+!secrets/README.txt
+!secrets/*.example.json
+!secrets/product_defaults.example.json
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local runtime if ever under repo
+Reports/
+History/
+Snapshots/
+Cache/
+Logs/
+Alerts/
+*.log
+*.tmp
+
+# Local test helpers
+tmp_*.py
