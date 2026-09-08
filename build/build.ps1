@@ -109,6 +109,7 @@ Write-Host "[OK] Dependencies" -ForegroundColor Green
 
 $secretsDir = Join-Path $projectRoot "secrets"
 $defaultsPath = Join-Path $secretsDir "product_defaults.json"
+$examplePath = Join-Path $secretsDir "product_defaults.example.json"
 if (Test-Path $defaultsPath) {
     Write-Host "[*] Using existing secrets/product_defaults.json" -ForegroundColor Cyan
 } else {
@@ -119,6 +120,11 @@ if (Test-Path $defaultsPath) {
         $obj = @{ telegram_bot_token = $tok; notification_mode = "direct" } | ConvertTo-Json
         Set-Content -Path $defaultsPath -Value $obj -Encoding UTF8
         Write-Host "[*] Wrote secrets/product_defaults.json from env" -ForegroundColor Cyan
+    } elseif (Test-Path $examplePath) {
+        # Office / local builds: ship Telegram token from example so Setup works out of the box
+        New-Item -ItemType Directory -Path $secretsDir -Force | Out-Null
+        Copy-Item -Path $examplePath -Destination $defaultsPath -Force
+        Write-Host "[*] Copied product_defaults.example.json → product_defaults.json (Telegram ready)" -ForegroundColor Cyan
     } else {
         Write-Host "[!] No product_defaults.json - installs will need token manually" -ForegroundColor Yellow
     }
