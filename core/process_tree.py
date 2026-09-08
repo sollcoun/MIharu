@@ -228,5 +228,5 @@ def attach_trees_to_report(report: dict) -> dict:
         {"HIGH": 0, "MEDIUM": 1, "LOW": 2}.get(str(x.get("risk") or "LOW").upper(), 3),
         -int(x.get("score") or 0),
     ))
-    report["process_trees"] = trees[:25]
+    report["process_trees"] = trees[:50]
     return report
