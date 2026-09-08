@@ -1,68 +1,78 @@
-# Python
+# --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 *.egg-info/
-.eggs/
 *.egg
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
+.installed.cfg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Virtual envs
+# --- Virtual environments ---
 .venv/
 venv/
+ENV/
 env/
+env.bak/
+venv.bak/
+
+# --- Test / type / coverage ---
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# --- Env & local config ---
+.env
+.env.*
+!.env.example
+local_config.json
+*.log
+*.tmp
+
+# --- Secrets (never commit real tokens) ---
+secrets/product_defaults.json
+secrets/*.json
+!secrets/product_defaults.example.json
+!secrets/README.txt
+!secrets/.gitkeep
+
+# --- Build outputs (keep build scripts & specs tracked) ---
+dist/
+release/
+build/pyinstaller/
 build/.venv/
 build/.venv-*/
 build/.venv.trash-*/
 
-# Build / release binaries (do not publish)
-dist/
-build/pyinstaller/
-release/
-*.exe
-*.dll
-*.spec.bak
+# PyInstaller work leftovers outside controlled dirs
+*.manifest
 
-# Secrets — never commit real tokens/keys
-.env
-.env.*
-!.env.example
-secrets/product_defaults.json
-settings.json
-**/Config/settings.json
-*.pem
-
-# Keep placeholders under secrets/
-!secrets/
-!secrets/.gitkeep
-!secrets/README.txt
-!secrets/*.example.json
-!secrets/product_defaults.example.json
-
-# IDE / OS
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-Thumbs.db
-Desktop.ini
-.DS_Store
-
-# Local runtime if ever under repo
-Reports/
-History/
-Snapshots/
-Cache/
-Logs/
-Alerts/
-*.log
-*.tmp
-
-# Local test helpers
-tmp_*.py
+# Local one-off installer experiments (if any)
+installer/
