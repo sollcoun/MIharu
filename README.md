@@ -4,7 +4,8 @@
 
 Miharu — это локальный Windows Security Monitor, который предоставляет детальные сведения о состоянии безопасности вашей системы. Он захватывает снимки вашей системы, сравнивает их со временем и оценивает потенциальные риски, предлагая объяснения и действенные рекомендации.
 
-![Miharu Dashboard](https://github.com/yourusername/miharu/blob/main/assets/dashboard.png)
+![Miharu Dashboard] <img width="1097" height="706" alt="изображение" src="https://github.com/user-attachments/assets/8a156f8f-151c-4610-9cd1-26e0370c2c82" />
+
 
 ## Возможности
 
