@@ -1,7 +1,5 @@
 # Руководство пользователя — Miharu (見張る)
 
-**See what changed. Understand what matters.**
-
 Miharu — локальный Windows Security Monitor. Программа делает снимок системы, сравнивает его с прошлым сканом, оценивает риски и объясняет результаты. Данные остаются на вашем ПК.
 
 <img width="1099" height="706" alt="изображение" src="https://github.com/user-attachments/assets/372cc681-5a0c-4ae9-af85-5c64fe8f21a8" />
