@@ -4,11 +4,8 @@
 
 Miharu — локальный Windows Security Monitor. Программа делает снимок системы, сравнивает его с прошлым сканом, оценивает риски и объясняет результаты. Данные остаются на вашем ПК.
 
-<!--
-  ФОТО: главное окно
-  Файл: assets/screenshots/01_main_window.png
--->
-<!-- ![Главное окно Miharu](../assets/screenshots/01_main_window.png) -->
+<img width="1099" height="706" alt="изображение" src="https://github.com/user-attachments/assets/372cc681-5a0c-4ae9-af85-5c64fe8f21a8" />
+
 
 ---
 
@@ -48,11 +45,8 @@ Miharu — локальный Windows Security Monitor. Программа де�
 | 4 | Откройте **Dashboard** — HTML-отчёт в браузере |
 | 5 | По желанию: **TELEGRAM** → Start у бота; **MONITOR** → фон |
 
-<!--
-  ФОТО: дашборд PROTECTED
-  Файл: assets/screenshots/02_dashboard.png
--->
-<!-- ![Дашборд](../assets/screenshots/02_dashboard.png) -->
+<img width="1920" height="955" alt="изображение" src="https://github.com/user-attachments/assets/c22bef7f-e5ba-4229-9862-e2501a8afab4" />
+
 
 ---
 
@@ -100,11 +94,8 @@ Miharu — локальный Windows Security Monitor. Программа де�
 
 Если описание «неизвестный / сторонний процесс» — стоит проверить путь и издателя.
 
-<!--
-  ФОТО: процессы с описаниями
-  Файл: assets/screenshots/03_processes.png
--->
-<!-- ![Новые процессы](../assets/screenshots/03_processes.png) -->
+<img width="1099" height="711" alt="изображение" src="https://github.com/user-attachments/assets/f68dc8bf-bc60-48b0-840a-a4cc903adfe0" />
+
 
 ### Findings (MEDIUM / HIGH)
 
@@ -119,11 +110,8 @@ Miharu — локальный Windows Security Monitor. Программа де�
 
 Текстовое резюме на русском. AI **не** выставляет уровень угрозы — только формулирует вывод по уже посчитанным рискам.
 
-<!--
-  ФОТО: HTML-отчёт
-  Файл: assets/screenshots/04_report.png
--->
-<!-- ![Отчёт](../assets/screenshots/04_report.png) -->
+<img width="973" height="742" alt="изображение" src="https://github.com/user-attachments/assets/0a6f1ca2-7aca-4f3a-a32c-75161f54a81d" />
+
 
 ---
 
@@ -140,11 +128,8 @@ Miharu — локальный Windows Security Monitor. Программа де�
 
 Один бот на команду; у каждого ПК — свой chat (или общая группа).
 
-<!--
-  ФОТО: чат привязан
-  Файл: assets/screenshots/05_telegram_linked.png
--->
-<!-- ![Telegram](../assets/screenshots/05_telegram_linked.png) -->
+<img width="740" height="334" alt="изображение" src="https://github.com/user-attachments/assets/20190175-65c9-412c-b028-7cf1afce21db" />
+
 
 Подробнее для админов: [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md)
 
